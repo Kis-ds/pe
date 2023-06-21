@@ -1,4 +1,4 @@
-from tqdm import tqdm
+from stqdm import stqdm
 from streamlit_option_menu import option_menu
 import streamlit as st
 import pandas as pd
@@ -11,7 +11,6 @@ import re
 import os
 
 warnings.filterwarnings('ignore')
-
 
 ## 01. functions
 def get_data(dart, code, year, quarter):
@@ -41,11 +40,9 @@ def convert_df(df, encode_opt = False):
         return df.to_csv()
 
 def main(year, r_code):
-    progress_text = "Operation in progress. Please wait."
-    p_bar = st.progress(0.0, text=progress_text)
-
+    
     ## SOURCE CODE
-    api_key = '1b39652cef07f626c9d37375edf582ee51b1407f'
+    api_key = 'f54ffa528f132c33a392456a76438073353fa2b5'
     dart = OpenDartReader(api_key)
     dart_fss.set_api_key(api_key=api_key)
 
@@ -53,68 +50,72 @@ def main(year, r_code):
     corp_df = pd.DataFrame(corp_dict)
     corp_df = corp_df.loc[corp_df.stock_code.notnull()]
     corp_df.index = [x for x in range(corp_df.shape[0])]
+    
+    # C=발행공시, D=지분공시
+    market_dict = {"Y": "코스피","K": "코스닥", "N": "코넥스", "E": "기타"}
+    q_dict = {"1분기": ['{}-01-01', '{}-03-31'],
+              "2분기": ['{}-04-01', '{}-06-30'],
+              "3분기": ['{}-07-01', '{}-09-30'],
+              "4분기": ['{}-10-01', '{}-12-31']}
 
-    pass_list = []
-    t_cnt = 0
+    change_dict = {"1분기보고서": 11013, "반기보고서": 11012, "3분기보고서": 11014, "사업보고서":11011}
+
+    loop_list = ['{}분기'.format(x) for x in range(1,5)]
+    
+    for idx, q in enumerate(loop_list):
+        start_dt, end_dt = [x.format(year) for x in q_dict[q]]
+
+        if r_code == "사업보고서":
+            temp_df = dart.list(start=start_dt, end=end_dt, kind_detail = 'A001') # 사업
+        elif r_code == "반기보고서":
+            temp_df = dart.list(start=start_dt, end=end_dt, kind_detail = 'A002') # 반기
+        else:
+            temp_df = dart.list(start=start_dt, end=end_dt, kind_detail = 'A003') # 분기
+
+        if idx == 0:
+            info_df = temp_df
+        else:
+            info_df = pd.concat([info_df, temp_df])
+
+    corp_list = info_df.loc[info_df.corp_cls.isin(['Y', 'K', 'N'])].corp_name.unique()
+
     cnt = 0
-    p_ratio = 0.0
-    sleep_opt = 0.1
+    p_cnt = 0
 
-    for code in corp_df.corp_code.unique():
-        try:
-            temp_df = get_data(dart, code, year, r_code)
-            
-            if temp_df.shape[0] == 0:
-                pass_list.append(code)
-                time.sleep(sleep_opt)
-                cnt += 1
-                p_ratio = cnt / corp_df.shape[0]
-                p_bar.progress(p_ratio, text=progress_text)
-                continue
+    for corp in stqdm(corp_list):
+        temp_df = dart.report(corp, '타법인출자', year, change_dict[r_code])
+        p_cnt += 1
 
-            elif (temp_df.shape[0] != 0) & (t_cnt == 0):
-                output_df = temp_df
-            else:
-                output_df = output_df.append(temp_df)
+        if temp_df.shape[0] == 0:
+            continue
 
+        elif cnt == 0 and temp_df.shape[0] != 1:
+            output = temp_df
             cnt += 1
-            t_cnt += 1
-            p_ratio = cnt / corp_df.shape[0]
-            p_bar.progress(p_ratio, text=progress_text)
-            time.sleep(sleep_opt)
 
-        except:
-            time.sleep(3)
-            temp_df = get_data(dart, code, year, r_code)
-            
-            if t_cnt == 0:
-                output_df = temp_df
+        else:
+            output = pd.concat([output, temp_df])
 
-            if temp_df.shape[0] == 0:
-                pass_list.append(code)
-                time.sleep(sleep_opt)
-                cnt += 1
-                
-                p_ratio = cnt / corp_df.shape[0]
-                p_bar.progress(p_ratio, text=progress_text)
-                continue
+    output.invstmnt_purps = [x.replace(" ", "").replace("\n", "") for x in output.invstmnt_purps]
+    final_df = output.loc[[True if "단순" == x or "단순투자" in x else False for x in output.invstmnt_purps], :]
 
-            elif (temp_df.shape[0] != 0) & (t_cnt == 0):
-                output_df = temp_df
-            else:
-                output_df = output_df.append(temp_df)
+    select_cols = ['corp_cls', 'corp_name', 'inv_prm', 'frst_acqs_de', 'invstmnt_purps', 'frst_acqs_amount', 'trmend_blce_qy', 'trmend_blce_qota_rt', 'trmend_blce_acntbk_amount']
+    change_cols = ['법인구분', '회사명', '법인명', '최초취득일자', '출자목적', '최초취득금액', '기말잔액수량', '기말잔액지분율', '기말잔액장부가액']
 
-            cnt += 1
-            t_cnt += 1
-            p_ratio = cnt / corp_df.shape[0]
-            p_bar.progress(p_ratio, text=progress_text)
-            time.sleep(sleep_opt)
+    save_df = final_df.loc[:, select_cols]
+    save_df.columns = change_cols
 
-    p_ratio = 1.0
-    p_bar.progress(p_ratio, text=progress_text)
+    save_df['법인구분'] = save_df['법인구분'].map(market_dict)
+
+    clean_txt = [re.sub(r'\([^)]*\)', '', x) for x in save_df['법인명']]
+    clean_txt = [re.sub("㈜", "", x) for x in clean_txt]
+    clean_txt = [re.sub("\s", "", x) for x in clean_txt]
+    save_df['법인명'] = clean_txt
+    check = save_df.loc[save_df['법인명'].isin(list(corp_df.corp_name.unique()))]
+
     try:
-        save_df = output_df.loc[(output_df['출자목적'] == '단순투자') & (output_df['법인명'].isin(list(corp_df.corp_name.unique())))]
-        save_df.index = [x for x in range(save_df.shape[0])]
+        save_df = check
+        save_df.index = [x for x in range(1, save_df.shape[0]+1)]
         st.dataframe(save_df)
 
         save_df1 = convert_df(save_df)
