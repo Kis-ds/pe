@@ -14,3 +14,7 @@ urllib3==1.26.15
 matplotlib==3.5.1
 openpyxl
 pathlib
+plotly==5.10.0
+cufflinks==0.17.3
+numpy==1.24.3
+stqdm
