@@ -36,6 +36,7 @@ if __name__ == '__main__':
         df['주식총수대비비율'] = df.주식총수대비비율.str.replace('\n', '')
         df['전환조건'] = df.전환조건.str.replace('\n', '')
         df['의결권'] = df.의결권.str.replace('\n', '')
+        df['옵션'] = df.옵션.str.replace('\n', '')
         df['이익배당'] = df.이익배당.str.replace('\n', '')
         df[['전환비율', '전환가액', '전환가액결정방법', '주식총수대비비율']] = df[['전환비율', '전환가액', '전환가액결정방법', '주식총수대비비율']].fillna(
             '-')
@@ -47,7 +48,7 @@ if __name__ == '__main__':
         print("백업 사이즈: ", df_org.shape)
 
         # 파일 합치기
-        df_new = pd.concat([df_org, df])
+        df_new = pd.concat([df_org, df]).fillna('-')
         df_new = df_new.sort_values('공시일')
         df_new.reset_index(inplace=True, drop=True)
         df_new = df_new.drop_duplicates(ignore_index=True)
