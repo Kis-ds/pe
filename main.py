@@ -100,15 +100,20 @@ if selected == "주식연계채권":
                 '<div style = "color:white; font-size: 16px; text-align:center; background-color: grey">TOP5 발행사</div>',
                 unsafe_allow_html=True)
             st.markdown('<h3 style="text-align:center">   </h3>', unsafe_allow_html=True)
-            knd = st.radio('> 채권 종류', ('교환사채권', '신주인수권', '전환사채권'), horizontal=True)
+            knd = st.radio('채권 종류', ('교환사채권', '신주인수권', '전환사채권'), horizontal=True)
             knd = '신주인수권부사채권' if (knd == '신주인수권') else knd
+            mzn_cnt = df_mzn[(df_mzn['발행연도'] >= start_year) & (df_mzn['발행연도'] <= end_year) & (df_mzn['종류'] == knd)].shape[0]
+            mzn_amt = '{0:,.0f}'.format(round(df_mzn[(df_mzn['발행연도'] >= start_year) & (df_mzn['발행연도'] <= end_year) & (df_mzn['종류'] == knd)]['권면총액'].sum()))
             df_top5 = df_mzn[(df_mzn['발행연도'] >= start_year) & (df_mzn['발행연도'] <= end_year) & (df_mzn['종류'] == knd)].groupby(['종류', '발행사'])[
                 ['권면총액']].agg(sum).sort_values('권면총액',
                                                ascending=False).reset_index().head()
-            df_top5['#'] = [1, 2, 3, 4, 5]
-            df_top5 = df_top5[['#', '발행사', '권면총액']]
+            df_top5_temp = pd.DataFrame(data=[1, 2, 3, 4, 5], columns=['#'], index=range(0, 5))
+            df_top5 = pd.concat([df_top5_temp, df_top5], axis=1)
+            df_top5 = df_top5[['#', '발행사', '권면총액']].fillna('-')
             st.markdown(hide_table_row_index, unsafe_allow_html=True)
-            st.table(df_top5.style.format({'권면총액': '{:,.0f}'}))
+            if (df_top5['권면총액']!='-').all():
+                st.table(df_top5.style.format({'권면총액': '{:,.0f}'}))
+            st.markdown(f"(총 발행건수: {mzn_cnt}건,  총 발행금액: {mzn_amt}원)")
 
         with c_total_4:
             st.markdown(
@@ -146,11 +151,11 @@ if selected == "주식연계채권":
         c_corp_1, c_corp_2, c_corp_3 = st.columns(3, gap="large")
         with c_corp_1:
             corp_nm_list = df_mzn.sort_values('발행사')['발행사'].unique()
-            corp_nm = st.selectbox('> 발행사명', corp_nm_list)
+            corp_nm = st.selectbox('발행사명', corp_nm_list)
         with c_corp_2:
-            corp_start_dt = st.date_input('> 시작일(발행일 기준)', value=datetime.date(2018, 1, 1), key='corp_start_dt', label_visibility="visible")
+            corp_start_dt = st.date_input('시작일(발행일 기준)', value=datetime.date(2018, 1, 1), key='corp_start_dt', label_visibility="visible")
         with c_corp_3:
-            corp_end_dt = st.date_input('> 종료일(발행일 기준)', key='corp_end_dt', label_visibility="visible")
+            corp_end_dt = st.date_input('종료일(발행일 기준)', key='corp_end_dt', label_visibility="visible")
         df_corp = df_mzn[(df_mzn['발행일'] >= corp_start_dt.strftime('%Y%m%d')) & (df_mzn['발행일'] <= corp_end_dt.strftime('%Y%m%d'))]
         df_corp = df_corp.sort_values('발행일')
 
@@ -230,15 +235,15 @@ if selected == "주식연계채권":
         st.markdown('<h4 style = "color:#1B5886;">| 조건별 현황 분석</h4>', unsafe_allow_html=True)
         c_con_1, c_con_2, c_con_3, c_con_4, c_con_5 = st.columns([1, 0.8, 0.8, 1.2, 1.2], gap='small')
         with c_con_1:
-            con_nm = st.radio('> 기준명', ('권면총액', '주식수'), horizontal=True)
+            con_nm = st.radio('기준명', ('권면총액', '주식수'), horizontal=True)
         with c_con_2:
-            con_st_value = st.number_input('> 최소값', value=1000000000, min_value=0)
+            con_st_value = st.number_input('최소값', value=1000000000, min_value=0)
         with c_con_3:
-            con_end_value = st.number_input('> 최대값', value=10000000000, min_value=0)
+            con_end_value = st.number_input('최대값', value=10000000000, min_value=0)
         with c_con_4:
-            con_st_dt = st.date_input('> 시작일(발행일 기준)', value=datetime.date(2018, 1, 1))
+            con_st_dt = st.date_input('시작일(발행일 기준)', value=datetime.date(2018, 1, 1))
         with c_con_5:
-            con_end_dt = st.date_input('> 종료일(발행일 기준)')
+            con_end_dt = st.date_input('종료일(발행일 기준)')
 
         st.markdown('<h1 style="text-align:center">   </h1>', unsafe_allow_html=True)
         c_con_6, c_con_7= st.columns([1,2], gap='large')
