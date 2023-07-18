@@ -50,10 +50,10 @@ if selected == "주식연계채권":
 
         with st.form(key='form1'):
             if all_yn == '회사별 검색':
-                with open('./pickle/Mezzanine_new.pkl', 'rb') as f:
+                # with open('./pickle/Mezzanine_new.pkl', 'rb') as f:
                     # df_mzn = pickle.load(f)
                     ### RPA 결과파일 받기 위해 수정 ###
-                    df_mzn = pd.read_pickle(f)
+                df_mzn = pd.read_pickle('./pickle/Mezzanine_new.pkl')
                 df_mzn['발행사'] = df_mzn['발행사'].str.replace('주식회사', '').str.replace('(주)', '').str.replace('㈜', '').str.replace(
                     '(','').str.replace(')', '').str.strip()
                 corp_nm_list = df_mzn.sort_values('발행사')['발행사'].unique()
@@ -85,10 +85,10 @@ if selected == "주식연계채권":
             df = pe_func.get_mezn_data(knd, corp_nm, start_dt, end_dt, intr_ex_min, intr_ex_max, intr_sf_min, intr_sf_max)
             pe_func.set_df(df, "mezzanine", start_dt.strftime('%Y%m%d'), end_dt.strftime('%Y%m%d'))
     with tab2:
-        with open('./pickle/Mezzanine_new.pkl', 'rb') as f:
+        # with open('./pickle/Mezzanine_new.pkl', 'rb') as f:
             # df_mzn = pickle.load(f)
             ### RPA 결과파일 받기 위해 수정 ###
-            df_mzn = pd.read_pickle(f)
+        df_mzn = pd.read_pickle('./pickle/Mezzanine_new.pkl')
         df_mzn = pe_func.cleansing_mzn_df(df_mzn)
 
         st.markdown('<h4 style = "color:#1B5886;">| 통합 현황 분석</h4>', unsafe_allow_html=True)
@@ -325,10 +325,10 @@ elif selected == "CPS/RCPS":
 
     with st.form(key='form3'):
         if all_yn == '회사별 검색':
-            with open('./pickle/Cprs_new.pkl', 'rb') as f:
+            # with open('./pickle/Cprs_new.pkl', 'rb') as f:
                 # df_cprs = pickle.load(f)
                 ### RPA 결과파일 받기 위해 수정 ###
-                df_cprs = pd.read_pickle(f)
+            df_cprs = pd.read_pickle('./pickle/Cprs_new.pkl')
             corp_nm_list = df_cprs.sort_values('발행사')['발행사'].unique()
             corp_nm = st.selectbox('기업명을 입력하세요', corp_nm_list)
         else:
