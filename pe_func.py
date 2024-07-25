@@ -399,8 +399,8 @@ def cleansing_mzn_df(df):
     df['발행월'] = df['발행일'].str[4:6]
     df = df.astype({'발행연도': int, '발행월': int})
     df['권면총액'] = df['권면총액'].str.replace(',', '').replace('-', '0').str.replace('\n', '').astype('float')
-    df['표면이자율(%)'] = df['표면이자율(%)'].strip()
-    df['만기이자율(%)'] = df['만기이자율(%)'].strip()
+    df['표면이자율(%)'] = df['표면이자율(%)'].str.strip()
+    df['만기이자율(%)'] = df['만기이자율(%)'].str.strip()
     df['표면이자율(%)'] = df['표면이자율(%)'].str.replace('\n', '').str.replace('&cr', '')
     df['만기이자율(%)'] = df['만기이자율(%)'].str.replace('\n', '').str.replace('&cr', '')
     df = df[(df['표면이자율(%)'] != '-') & (df['만기이자율(%)'] != '-')]
